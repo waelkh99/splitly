@@ -1,0 +1,134 @@
+{
+  "@@locale": "en",
+
+  "appName": "Splitly",
+  "splitBillsInSeconds": "Split bills in seconds",
+  "newSplit": "New Split",
+  "history": "History",
+  "settings": "Settings",
+  "groups": "Groups",
+  "done": "Done",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "next": "Next",
+  "back": "Back",
+  "share": "Share",
+  "shareViaWhatsApp": "Share via WhatsApp",
+  "startNewSplit": "Start New Split",
+  "homeTagline": "Split bills in seconds",
+  "noHistory": "No splits yet",
+  "noHistoryDesc": "Your completed splits will appear here.",
+  "noGroups": "No groups yet",
+  "noGroupsDesc": "Save a group to reuse it next time.",
+
+  "stepWhosIn": "Who's in?",
+  "stepSplit": "Split the bill",
+  "stepAdjustments": "Adjustments",
+  "stepSummary": "Summary",
+
+  "addPerson": "Add person",
+  "pasteNames": "Paste names",
+  "pasteNamesHint": "Ahmed, Sara, Omar…",
+  "useLastGroup": "Use last group",
+  "personName": "Name",
+  "personNameHint": "Enter name",
+  "atLeastTwoPeople": "Add at least 2 people to continue",
+  "recent": "Recent",
+  "morePeople": "More people",
+  "typeNameToGetStarted": "Type a name above to get started",
+  "noOneAddedYet": "No one added yet - select below",
+  "added": "Added",
+  "addAll": "+ All",
+
+  "addItem": "Add item",
+  "newItem": "New item",
+  "editItem": "Edit item",
+  "itemName": "Item name",
+  "itemNameHint": "e.g. Pizza",
+  "price": "Price",
+  "priceHint": "0.00",
+  "unassignedItems": "{count} unassigned",
+  "@unassignedItems": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "assignTo": "Assign to…",
+  "receiptPhoto": "Receipt photo",
+  "addReceiptPhoto": "Add photo",
+  "removePhoto": "Remove photo",
+  "tapOrDragToAssign": "Tap or drag items to assign them",
+  "tapReceiptToAssign": "Tap on the receipt to mark items, then drag to assign",
+  "camera": "Camera",
+  "photoLibrary": "Photo library",
+  "changePhoto": "Change",
+
+  "adjustments": "Adjustments",
+  "tax": "Tax",
+  "deliveryFee": "Delivery fee",
+  "discount": "Discount",
+  "totalOverride": "Total override",
+  "totalOverrideHint": "Leave blank to use items total",
+  "replacesSum": "Replaces sum",
+  "adjustmentsTotal": "New total",
+  "skip": "Skip",
+  "selectWhoOrderedThisItem": "Select who ordered this item",
+  "yourPeopleWillAppearHere": "Your people will appear here",
+
+  "billSummary": "Bill Summary",
+  "total": "Total",
+  "subtotal": "Subtotal",
+  "splitSummary": "🍽️ Splitly Bill Summary\nTotal: {total}\n\n{lines}\nSplit with Splitly ✨",
+  "@splitSummary": {
+    "placeholders": {
+      "total": { "type": "String" },
+      "lines": { "type": "String" }
+    }
+  },
+  "shareableLinePerson": "{name}: {amount}",
+  "@shareableLinePerson": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+
+  "groupName": "Group name",
+  "groupNameHint": "e.g. Office team",
+  "createGroup": "Create group",
+  "saveAsGroup": "Save as group",
+  "loadGroup": "Load group",
+  "addAtLeastTwoMembers": "Add at least 2 members",
+  "suggestions": "Suggestions",
+  "membersCount": "{count} members",
+  "@membersCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "language": "Language",
+  "english": "English",
+  "arabic": "Arabic",
+  "currency": "Currency symbol",
+  "currencyHint": "e.g. JD",
+  "about": "About",
+  "version": "Version",
+
+  "deleteConfirm": "Delete?",
+  "deleteGroupConfirm": "Delete this group?",
+  "deleteHistoryConfirm": "Delete this split from history?",
+  "yes": "Yes",
+  "no": "No",
+
+  "splitOn": "Split on {date}",
+  "@splitOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "peopleCount": "{count} people",
+  "@peopleCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "splitWithApp": "Split with {appName} ✨",
+  "@splitWithApp": {
+    "placeholders": { "appName": { "type": "String" } }
+  }
+}
