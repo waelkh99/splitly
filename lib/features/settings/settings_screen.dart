@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/router/app_router.dart';
+import '../../core/utils/currency_formatter.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -42,13 +45,31 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _SectionHeader(l.currency),
           _Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _CurrencyField(
-                initial: settings.currency,
-                onChanged: notifier.setCurrency,
-                hint: l.currencyHint,
+            child: RadioGroup<String>(
+              groupValue: settings.currency,
+              onChanged: (v) {
+                if (v != null) notifier.setCurrency(v);
+              },
+              child: Column(
+                children: [
+                  for (var i = 0; i < supportedCurrencies.length; i++) ...[
+                    if (i > 0) const Divider(height: 0),
+                    _CurrencyRow(info: supportedCurrencies[i]),
+                  ],
+                ],
               ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _SectionHeader(l.help),
+          _Card(
+            child: ListTile(
+              leading: const Icon(Icons.lightbulb_outline_rounded),
+              title: Text(l.howItWorks),
+              trailing: const Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey),
+              onTap: () =>
+                  Navigator.pushNamed(context, AppRoutes.onboarding),
             ),
           ),
           const SizedBox(height: 24),
@@ -56,10 +77,22 @@ class SettingsScreen extends ConsumerWidget {
           _Card(
             child: ListTile(
               title: Text(l.appName),
-              subtitle: Text('${l.version} 1.0.0'),
+              subtitle: const _VersionText(),
               leading: const Icon(Icons.info_outline_rounded),
             ),
           ),
+          const SizedBox(height: 32),
+          Center(
+            child: Opacity(
+              opacity: 0.55,
+              child: Image.asset(
+                'assets/Tag black.png',
+                height: 28,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -102,51 +135,91 @@ class _Card extends StatelessWidget {
             ),
           ],
         ),
-        child: child,
+        // ListTile + ink splashes need a Material ancestor; without it Flutter
+        // warns that splashes/background colour may be invisible.
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Material(
+            color: Colors.transparent,
+            child: child,
+          ),
+        ),
       );
 }
 
-class _CurrencyField extends StatefulWidget {
-  const _CurrencyField({
-    required this.initial,
-    required this.onChanged,
-    required this.hint,
-  });
-  final String initial;
-  final ValueChanged<String> onChanged;
-  final String hint;
+class _CurrencyRow extends StatelessWidget {
+  const _CurrencyRow({required this.info});
+  final CurrencyInfo info;
 
   @override
-  State<_CurrencyField> createState() => _CurrencyFieldState();
+  Widget build(BuildContext context) {
+    return RadioListTile<String>(
+      value: info.code,
+      title: Row(
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              info.symbol,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  info.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  info.code,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _CurrencyFieldState extends State<_CurrencyField> {
-  late final TextEditingController _ctrl;
+class _VersionText extends StatefulWidget {
+  const _VersionText();
+
+  @override
+  State<_VersionText> createState() => _VersionTextState();
+}
+
+class _VersionTextState extends State<_VersionText> {
+  String? _version;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: widget.initial);
+    PackageInfo.fromPlatform().then((info) {
+      if (!mounted) return;
+      // Display major.minor.buildNumber (e.g. 1.1.0+3 → 1.1.3).
+      final parts = info.version.split('.');
+      final major = parts.isNotEmpty ? parts[0] : '0';
+      final minor = parts.length > 1 ? parts[1] : '0';
+      setState(() => _version = '$major.$minor.${info.buildNumber}');
+    });
   }
 
   @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Text('${l.version} ${_version ?? '…'}');
   }
-
-  @override
-  Widget build(BuildContext context) => TextField(
-        controller: _ctrl,
-        decoration: InputDecoration(
-          labelText: AppLocalizations.of(context).currency,
-          hintText: widget.hint,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-        ),
-        onSubmitted: widget.onChanged,
-        onEditingComplete: () => widget.onChanged(_ctrl.text.trim()),
-        textInputAction: TextInputAction.done,
-      );
 }

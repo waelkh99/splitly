@@ -41,6 +41,26 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
     end
   end
+
+  # Add a build phase to Runner that re-tags any simulator-platform slices
+  # as iOS device slices using vtool, fixing objective_c.framework validation
+  runner_project = installer.aggregate_targets.first.user_project
+  runner_target = runner_project.targets.find { |t| t.name == 'Runner' }
+  unless runner_target.build_phases.any? { |p| p.respond_to?(:name) && p.name == 'Strip Simulator Slices' }
+    phase = runner_target.new_shell_script_build_phase('Strip Simulator Slices')
+    phase.shell_script = <<~'SCRIPT'
+      find "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks" -name "*.framework" -type d | while read -r framework; do
+        binary="${framework}/$(basename "${framework}" .framework)"
+        if [ -f "${binary}" ]; then
+          if xcrun vtool -show-build "${binary}" 2>/dev/null | grep -qi "simulator"; then
+            xcrun vtool -set-build-version ios 12.0 12.0 -replace -output "${binary}" "${binary}" || true
+          fi
+        fi
+      done
+    SCRIPT
+  end
+  runner_project.save
 end

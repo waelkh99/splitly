@@ -13,5 +13,5 @@ String buildShareText({
       .join('\n');
 
   final total = formatAmount(result.total, currency);
-  return 'Splitly Bill Summary\nTotal: $total\n\n$lines\n\nSplit with Splitly ✨';
+  return 'Splitli Bill Summary\nTotal: $total\n\n$lines\n\nSplit with Splitli ✨';
 }

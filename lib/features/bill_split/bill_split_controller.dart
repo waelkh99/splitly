@@ -22,18 +22,17 @@ class BillSplitController {
   /// Assigns or unassigns a person from an item.
   /// When dropped via drag: toggles the person in (adds if not present).
   void dropItemOnPerson(String personId, BillItem item) {
-    final ids = List<String>.from(item.assignedPersonIds);
-    if (ids.contains(personId)) {
-      ids.remove(personId);
+    final quantities = Map<String, int>.from(item.personQuantities);
+    if (quantities.containsKey(personId)) {
+      quantities.remove(personId);
     } else {
-      ids.add(personId);
+      quantities[personId] = 1;
     }
-    _notifier.assignItem(item.id, ids);
+    _notifier.assignItem(item.id, quantities);
   }
 
-  /// Opens assignment dialog result and applies the chosen person IDs.
-  void applyAssignment(String itemId, List<String> personIds) {
-    _notifier.assignItem(itemId, personIds);
+  void applyAssignment(String itemId, Map<String, int> personQuantities) {
+    _notifier.assignItem(itemId, personQuantities);
   }
 }
 

@@ -1,6 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/providers/groups_provider.dart';
+import '../../core/providers/people_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/router/app_router.dart';
@@ -11,6 +14,7 @@ import '../../data/models/adjustment.dart';
 import '../../data/models/bill_item.dart';
 import '../../data/models/person.dart';
 import 'widgets/receipt_canvas.dart';
+import '../people_selection/widgets/person_chip.dart';
 
 
 class BillSplitScreen extends ConsumerStatefulWidget {
@@ -28,7 +32,7 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
   // Item form
   final _nameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
-  Set<String> _selectedPersonIds = {};
+  Map<String, int> _personQuantities = {};
 
   // Adjustments form
   final _taxCtrl = TextEditingController();
@@ -52,7 +56,7 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
   void _openAdd(double? x, double? y) {
     _nameCtrl.clear();
     _priceCtrl.clear();
-    _selectedPersonIds = {};
+    _personQuantities = {};
     setState(() {
       _popupRelX = x ?? 0.5;
       _popupRelY = y ?? 0.35;
@@ -63,7 +67,7 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
   void _openEdit(BillItem item) {
     _nameCtrl.text = item.name;
     _priceCtrl.text = item.price.toStringAsFixed(2);
-    _selectedPersonIds = Set.from(item.assignedPersonIds);
+    _personQuantities = Map.from(item.personQuantities);
     setState(() {
       _popupRelX = item.imageX ?? 0.5;
       _popupRelY = item.imageY ?? 0.35;
@@ -92,13 +96,13 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
           price: price,
           imageX: _popupRelX == 0.5 ? null : _popupRelX,
           imageY: _popupRelY == 0.35 ? null : _popupRelY,
-        ).copyWith(assignedPersonIds: _selectedPersonIds.toList()),
+        ).copyWith(personQuantities: Map.from(_personQuantities)),
       );
     } else {
       notifier.updateItem(_popupItem!.copyWith(
         name: name,
         price: price,
-        assignedPersonIds: _selectedPersonIds.toList(),
+        personQuantities: Map.from(_personQuantities),
       ));
     }
     _closePopup();
@@ -109,6 +113,19 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
       ref.read(splitSessionProvider.notifier).removeItem(_popupItem!.id);
     }
     _closePopup();
+  }
+
+  void _openAddPeople(List<Person> currentPeople) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddPeopleSheet(
+        currentPeople: currentPeople,
+        onAddPerson: (person) =>
+            ref.read(splitSessionProvider.notifier).addPerson(person),
+      ),
+    );
   }
 
   void _openAdjustments() {
@@ -133,12 +150,11 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
         discountCtrl: _discountCtrl,
         overrideCtrl: _overrideCtrl,
         currency: currency,
-        onSave: () {
-          _saveAdjustments();
-          Navigator.pop(sheetCtx);
-        },
+        onSave: () => Navigator.pop(sheetCtx),
       ),
-    );
+    ).whenComplete(() {
+      if (mounted) _saveAdjustments();
+    });
   }
 
   void _saveAdjustments() {
@@ -214,6 +230,9 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
                         onImagePicked: notifier.setReceiptImage,
                         onRequestAddItem: _openAdd,
                         onItemTapped: _openEdit,
+                        onItemMoved: (item, rx, ry) => notifier.updateItem(
+                          item.copyWith(imageX: rx, imageY: ry),
+                        ),
                         onDeleteItem: (id) {
                           notifier.removeItem(id);
                           if (_popupItem?.id == id) _closePopup();
@@ -237,15 +256,24 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
                           nameCtrl: _nameCtrl,
                           priceCtrl: _priceCtrl,
                           people: session.people,
-                          selectedPersonIds: _selectedPersonIds,
+                          personQuantities: _personQuantities,
                           isEdit: _popupItem != null,
                           onSave: _saveItem,
                           onDelete:
                               _popupItem != null ? _deletePopupItem : null,
                           onClose: _closePopup,
                           onTogglePerson: (id) => setState(() {
-                            if (!_selectedPersonIds.remove(id)) {
-                              _selectedPersonIds.add(id);
+                            if (_personQuantities.containsKey(id)) {
+                              _personQuantities.remove(id);
+                            } else {
+                              _personQuantities[id] = 1;
+                            }
+                          }),
+                          onChangeQuantity: (id, qty) => setState(() {
+                            if (qty <= 0) {
+                              _personQuantities.remove(id);
+                            } else {
+                              _personQuantities[id] = qty;
                             }
                           }),
                         ),
@@ -263,6 +291,7 @@ class _BillSplitScreenState extends ConsumerState<BillSplitScreen> {
                           currency: currency,
                           onDrop: (item, personId) => notifier
                               .togglePersonOnItem(item.id, personId),
+                          onAddPeople: () => _openAddPeople(session.people),
                         ),
                       ),
                   ],
@@ -302,7 +331,8 @@ class _ItemPopupPositioner extends StatelessWidget {
   static const _popupWidth = 272.0;
   static const _margin = 10.0;
   static const _gap = 12.0;
-  static const _estimatedHeight = 190.0;
+  // Generous estimate: base fields + up to 6 person rows with steppers
+  static const _estimatedHeight = 320.0;
 
   @override
   Widget build(BuildContext context) {
@@ -310,8 +340,9 @@ class _ItemPopupPositioner extends StatelessWidget {
     final ay = relY * canvasSize.height;
 
     // Horizontal: centre on tap, clamped to screen edges
-    final left = (ax - _popupWidth / 2)
-        .clamp(_margin, canvasSize.width - _popupWidth - _margin);
+    final leftMax =
+        math.max(_margin, canvasSize.width - _popupWidth - _margin);
+    final left = (ax - _popupWidth / 2).clamp(_margin, leftMax);
 
     // Vertical: prefer above the tap; fall back to below if near the top.
     // Also ensure the popup doesn't go below the keyboard.
@@ -320,23 +351,35 @@ class _ItemPopupPositioner extends StatelessWidget {
     final spaceBelow = maxBottom - ay - _gap - 40; // 40 = approx pin height
 
     if (spaceAbove >= _estimatedHeight || spaceAbove >= spaceBelow) {
-      // Show above — bottom edge is _gap above the tap point
+      // Show above — anchor bottom at tap point, clamp so popup top stays in canvas.
+      final clampMin = keyboardHeight + _margin;
+      final clampMax = math.max(clampMin, canvasSize.height - _estimatedHeight - _margin);
+      final bottom = (canvasSize.height - ay + _gap).clamp(clampMin, clampMax);
+      // maxH = space from canvas top to popup's bottom anchor, minus top margin.
+      final maxH = math.max(80.0, canvasSize.height - bottom - _margin);
       return Positioned(
         left: left,
-        bottom: (canvasSize.height - ay + _gap)
-            .clamp(keyboardHeight + _margin, canvasSize.height - _margin),
+        bottom: bottom,
         width: _popupWidth,
-        child: child,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: child,
+        ),
       );
     } else {
-      // Show below — top edge is _gap below the tap point
-      final top =
-          (ay + 40 + _gap).clamp(_margin, maxBottom - _estimatedHeight);
+      // Show below — top edge is _gap below the tap point.
+      final topMax = math.max(_margin, maxBottom - _estimatedHeight);
+      final top = (ay + 40 + _gap).clamp(_margin, topMax);
+      // maxH = space from popup top down to keyboard top, minus bottom margin.
+      final maxH = math.max(80.0, maxBottom - top - _margin);
       return Positioned(
         left: left,
         top: top,
         width: _popupWidth,
-        child: child,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: child,
+        ),
       );
     }
   }
@@ -349,23 +392,25 @@ class _ItemFormPopup extends StatelessWidget {
     required this.nameCtrl,
     required this.priceCtrl,
     required this.people,
-    required this.selectedPersonIds,
+    required this.personQuantities,
     required this.isEdit,
     required this.onSave,
     this.onDelete,
     required this.onClose,
     required this.onTogglePerson,
+    required this.onChangeQuantity,
   });
 
   final TextEditingController nameCtrl;
   final TextEditingController priceCtrl;
   final List<Person> people;
-  final Set<String> selectedPersonIds;
+  final Map<String, int> personQuantities;
   final bool isEdit;
   final VoidCallback onSave;
   final VoidCallback? onDelete;
   final VoidCallback onClose;
   final ValueChanged<String> onTogglePerson;
+  final void Function(String personId, int qty) onChangeQuantity;
 
   @override
   Widget build(BuildContext context) {
@@ -380,6 +425,7 @@ class _ItemFormPopup extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
         ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -451,58 +497,73 @@ class _ItemFormPopup extends StatelessWidget {
               ],
             ),
 
-            // Person chips
+            // Person chips with quantity steppers
             if (people.isNotEmpty) ...[
               const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: people.asMap().entries.map((e) {
-                    final person = e.value;
-                    final selected = selectedPersonIds.contains(person.id);
-                    final color = AppColors.avatarFor(e.key);
-                    return GestureDetector(
-                      onTap: () => onTogglePerson(person.id),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 130),
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? color.withValues(alpha: 0.12)
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selected ? color : Colors.grey.shade300,
-                            width: selected ? 1.5 : 1,
+              ...people.asMap().entries.map((e) {
+                final person = e.value;
+                final qty = personQuantities[person.id];
+                final selected = qty != null;
+                final color = AppColors.avatarFor(e.key);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      // Name chip (toggles selection)
+                      GestureDetector(
+                        onTap: () => onTogglePerson(person.id),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 130),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? color.withValues(alpha: 0.12)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selected ? color : Colors.grey.shade300,
+                              width: selected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (selected) ...[
+                                Icon(Icons.check_rounded,
+                                    size: 11, color: color),
+                                const SizedBox(width: 3),
+                              ],
+                              Text(
+                                person.name,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: selected
+                                      ? color
+                                      : Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (selected) ...[
-                              Icon(Icons.check_rounded,
-                                  size: 11, color: color),
-                              const SizedBox(width: 3),
-                            ],
-                            Text(
-                              person.name,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: selected
-                                    ? color
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
+                      // Quantity stepper — only visible when selected
+                      if (selected) ...[
+                        const Spacer(),
+                        _QuantityStepper(
+                          quantity: qty,
+                          color: color,
+                          onDecrement: () =>
+                              onChangeQuantity(person.id, qty - 1),
+                          onIncrement: () =>
+                              onChangeQuantity(person.id, qty + 1),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
             ],
 
             const SizedBox(height: 10),
@@ -525,6 +586,79 @@ class _ItemFormPopup extends StatelessWidget {
             ),
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuantityStepper extends StatelessWidget {
+  const _QuantityStepper({
+    required this.quantity,
+    required this.color,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final int quantity;
+  final Color color;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _StepBtn(
+          icon: Icons.remove,
+          color: color,
+          onTap: onDecrement,
+        ),
+        SizedBox(
+          width: 28,
+          child: Text(
+            '$quantity',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ),
+        _StepBtn(
+          icon: Icons.add,
+          color: color,
+          onTap: onIncrement,
+        ),
+      ],
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 14, color: color),
       ),
     );
   }
@@ -538,12 +672,14 @@ class _PeopleDropStrip extends StatelessWidget {
     required this.result,
     required this.currency,
     required this.onDrop,
+    required this.onAddPeople,
   });
 
   final List<Person> people;
   final dynamic result;
   final String currency;
   final void Function(BillItem item, String personId) onDrop;
+  final VoidCallback onAddPeople;
 
   @override
   Widget build(BuildContext context) {
@@ -559,31 +695,51 @@ class _PeopleDropStrip extends StatelessWidget {
           ),
         ],
       ),
-      child: people.isEmpty
-          ? Center(
-              child: Text(
-                AppLocalizations.of(context).yourPeopleWillAppearHere,
-                style:
-                    TextStyle(color: Colors.grey.shade400, fontSize: 13),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        itemCount: people.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          if (i == people.length) {
+            return GestureDetector(
+              onTap: onAddPeople,
+              child: Container(
+                width: 64,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: Colors.grey.shade300,
+                      width: 1,
+                      strokeAlign: BorderSide.strokeAlignInside),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person_add_rounded,
+                        size: 22, color: Colors.grey.shade500),
+                    const SizedBox(height: 4),
+                    Text('Add',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
-            )
-          : ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
-              itemCount: people.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final person = people[i];
-                return _PersonDropTarget(
-                  person: person,
-                  amount: result.amountFor(person),
-                  currency: currency,
-                  color: AppColors.avatarFor(i),
-                  onDrop: (item) => onDrop(item, person.id),
-                );
-              },
-            ),
+            );
+          }
+          final person = people[i];
+          return _PersonDropTarget(
+            person: person,
+            amount: result.amountFor(person),
+            currency: currency,
+            color: AppColors.avatarFor(i),
+            onDrop: (item) => onDrop(item, person.id),
+          );
+        },
+      ),
     );
   }
 }
@@ -762,6 +918,342 @@ class _AdjustmentsSheet extends StatelessWidget {
                       fontSize: 16)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Add people sheet ──────────────────────────────────────────────────────
+
+class _AddPeopleSheet extends ConsumerStatefulWidget {
+  const _AddPeopleSheet({
+    required this.currentPeople,
+    required this.onAddPerson,
+  });
+
+  final List<Person> currentPeople;
+  final ValueChanged<Person> onAddPerson;
+
+  @override
+  ConsumerState<_AddPeopleSheet> createState() => _AddPeopleSheetState();
+}
+
+class _AddPeopleSheetState extends ConsumerState<_AddPeopleSheet> {
+  final _nameCtrl = TextEditingController();
+  final List<Person> _pending = [];
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  bool _inCurrent(String id) =>
+      widget.currentPeople.any((p) => p.id == id);
+
+  bool _isPending(String id) => _pending.any((p) => p.id == id);
+
+  void _stageByName() {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _pending.add(Person.create(name)));
+    _nameCtrl.clear();
+  }
+
+  void _togglePerson(Person person) {
+    setState(() {
+      if (_isPending(person.id)) {
+        _pending.removeWhere((p) => p.id == person.id);
+      } else {
+        _pending.add(person);
+      }
+    });
+  }
+
+  void _toggleGroup(List<Person> members) {
+    final available = members.where((m) => !_inCurrent(m.id)).toList();
+    final allSelected = available.every((m) => _isPending(m.id));
+    setState(() {
+      for (final m in available) {
+        if (allSelected) {
+          _pending.removeWhere((p) => p.id == m.id);
+        } else if (!_isPending(m.id)) {
+          _pending.add(m);
+        }
+      }
+    });
+  }
+
+  void _confirm() {
+    // Commit any name still typed in the field
+    final name = _nameCtrl.text.trim();
+    final toAdd = List<Person>.from(_pending);
+    if (name.isNotEmpty) toAdd.add(Person.create(name));
+    for (final p in toAdd) {
+      widget.onAddPerson(p);
+    }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = ref.watch(groupsProvider);
+    final recent = ref.watch(recentPeopleProvider);
+    final recentIds = recent.map((p) => p.id).toSet();
+    // Typed people are pending entries that don't appear in the recent list
+    final typedPending =
+        _pending.where((p) => !recentIds.contains(p.id)).toList();
+    // Only show recent people not already in the split
+    final availableRecent =
+        recent.where((p) => !_inCurrent(p.id)).take(12).toList();
+
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final availableHeight = MediaQuery.sizeOf(context).height - keyboardHeight;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: availableHeight * 0.92),
+        child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Fixed header ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Add people',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 14),
+                  // Name text field — + stages, Done commits
+                  TextField(
+                    controller: _nameCtrl,
+                    autofocus: false,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      hintText: 'Enter name',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.add_circle_rounded),
+                        color: AppColors.primary,
+                        onPressed: _stageByName,
+                      ),
+                    ),
+                    onSubmitted: (_) => _stageByName(),
+                  ),
+                  // Staged typed names (lit up, tap to remove)
+                  if (typedPending.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: typedPending
+                          .map((p) => PersonChip(
+                                person: p,
+                                selected: true,
+                                onTap: () => setState(() =>
+                                    _pending.removeWhere((x) => x.id == p.id)),
+                                index: widget.currentPeople.length +
+                                    typedPending.indexOf(p),
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Scrollable middle (groups + recent) ───────────────────────
+            if (groups.isNotEmpty || availableRecent.isNotEmpty)
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Groups
+                      if (groups.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        Text(
+                          'Groups',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: groups.map((group) {
+                            final available = group.members
+                                .where((m) => !_inCurrent(m.id))
+                                .toList();
+                            final allInCurrent =
+                                group.members.every((m) => _inCurrent(m.id));
+                            final allSelected = available.isNotEmpty &&
+                                available.every((m) => _isPending(m.id));
+                            return GestureDetector(
+                              onTap: allInCurrent
+                                  ? null
+                                  : () => _toggleGroup(group.members),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: allInCurrent
+                                      ? Colors.grey.shade100
+                                      : allSelected
+                                          ? AppColors.primary
+                                              .withValues(alpha: 0.12)
+                                          : Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: allInCurrent
+                                        ? Colors.grey.shade300
+                                        : allSelected
+                                            ? AppColors.primary
+                                            : const Color(0xFFE0E0E0),
+                                    width: allSelected ? 1.5 : 1,
+                                  ),
+                                  boxShadow: allSelected || allInCurrent
+                                      ? []
+                                      : [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.04),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1),
+                                          )
+                                        ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      allInCurrent || allSelected
+                                          ? Icons.check_rounded
+                                          : Icons.group_rounded,
+                                      size: 13,
+                                      color: allInCurrent
+                                          ? Colors.grey.shade400
+                                          : allSelected
+                                              ? AppColors.primary
+                                              : Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      group.name,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: allSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: allInCurrent
+                                            ? Colors.grey.shade400
+                                            : allSelected
+                                                ? AppColors.primary
+                                                : const Color(0xFF333333),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '(${group.members.length})',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade400),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      // Recent people (already-in-split filtered out)
+                      if (availableRecent.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        Text(
+                          'Recent',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: availableRecent
+                              .asMap()
+                              .entries
+                              .map((e) => PersonChip(
+                                    person: e.value,
+                                    selected: _isPending(e.value.id),
+                                    onTap: () => _togglePerson(e.value),
+                                    index: e.key,
+                                  ))
+                              .toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+              ),
+
+            // ── Fixed footer ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: ElevatedButton(
+                onPressed: _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size.fromHeight(44),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                  _pending.isEmpty ? 'Done' : 'Add ${_pending.length}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
         ),
       ),
     );

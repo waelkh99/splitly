@@ -36,16 +36,16 @@ class SplitResult {
     } else {
       // Per-item assignment
       for (final item in items) {
-        if (item.assignedPersonIds.isEmpty) {
+        if (item.personQuantities.isEmpty) {
           // Unassigned items split equally
           final share = item.price / people.length;
           for (final p in people) {
             amounts[p.id] = (amounts[p.id] ?? 0) + share;
           }
         } else {
-          final share = item.price / item.assignedPersonIds.length;
-          for (final pid in item.assignedPersonIds) {
-            amounts[pid] = (amounts[pid] ?? 0) + share;
+          // Proportional split by quantity
+          for (final pid in item.personQuantities.keys) {
+            amounts[pid] = (amounts[pid] ?? 0) + item.amountFor(pid);
           }
         }
       }

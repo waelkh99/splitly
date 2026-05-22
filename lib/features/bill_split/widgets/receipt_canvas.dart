@@ -14,6 +14,7 @@ class ReceiptCanvas extends StatelessWidget {
     required this.onImagePicked,
     required this.onRequestAddItem,
     required this.onItemTapped,
+    required this.onItemMoved,
     required this.onDeleteItem,
     this.pendingPin,
   });
@@ -25,6 +26,7 @@ class ReceiptCanvas extends StatelessWidget {
   // null relX/relY = FAB / manual add (no canvas position)
   final void Function(double? relX, double? relY) onRequestAddItem;
   final ValueChanged<BillItem> onItemTapped;
+  final void Function(BillItem item, double relX, double relY) onItemMoved;
   final ValueChanged<String> onDeleteItem;
   // Ghost pin shown while the item form is open (0.0–1.0 relative coords)
   final Offset? pendingPin;
@@ -65,11 +67,13 @@ class ReceiptCanvas extends StatelessWidget {
                       ),
                     ),
                     ...items.where((i) => i.isPinned).map((item) => _ItemPin(
+                          key: ValueKey(item.id),
                           item: item,
                           index: items.indexOf(item),
                           canvasSize: sz,
                           currency: currency,
                           onTap: () => onItemTapped(item),
+                          onMove: (rx, ry) => onItemMoved(item, rx, ry),
                         )),
                     if (pendingPin != null)
                       _GhostPin(position: pendingPin!, canvasSize: sz),
@@ -146,15 +150,17 @@ class ReceiptCanvas extends StatelessWidget {
   }
 }
 
-// ─── Item pin (long-press draggable) ──────────────────────────────────────────
+// ─── Item pin (pan to reposition, long-press to drag onto a person) ────────
 
-class _ItemPin extends StatelessWidget {
+class _ItemPin extends StatefulWidget {
   const _ItemPin({
+    super.key,
     required this.item,
     required this.index,
     required this.canvasSize,
     required this.currency,
     required this.onTap,
+    required this.onMove,
   });
 
   final BillItem item;
@@ -162,32 +168,76 @@ class _ItemPin extends StatelessWidget {
   final Size canvasSize;
   final String currency;
   final VoidCallback onTap;
+  // Called with new center coords in 0.0–1.0 relative space when drag ends.
+  final void Function(double relX, double relY) onMove;
 
+  @override
+  State<_ItemPin> createState() => _ItemPinState();
+}
+
+class _ItemPinState extends State<_ItemPin> {
   static const _pinSize = 36.0;
+
+  // Top-left pixel position during an active pan; null when not dragging.
+  Offset? _dragTopLeft;
+
+  double get _maxLeft => widget.canvasSize.width - _pinSize;
+  double get _maxTop => widget.canvasSize.height - _pinSize;
 
   @override
   Widget build(BuildContext context) {
-    final x = item.imageX! * canvasSize.width - _pinSize / 2;
-    final y = item.imageY! * canvasSize.height - _pinSize / 2;
-    final color = item.isAssigned ? AppColors.primary : Colors.grey.shade600;
+    final baseX = widget.item.imageX! * widget.canvasSize.width - _pinSize / 2;
+    final baseY = widget.item.imageY! * widget.canvasSize.height - _pinSize / 2;
+    final left = (_dragTopLeft?.dx ?? baseX).clamp(0.0, _maxLeft);
+    final top = (_dragTopLeft?.dy ?? baseY).clamp(0.0, _maxTop);
+    final dragging = _dragTopLeft != null;
+
+    final color =
+        widget.item.isAssigned ? AppColors.primary : Colors.grey.shade600;
 
     return Positioned(
-      left: x.clamp(0, canvasSize.width - _pinSize),
-      top: y.clamp(0, canvasSize.height - _pinSize),
+      left: left,
+      top: top,
       child: GestureDetector(
-        onTap: onTap,
-        child: LongPressDraggable<BillItem>(
-          data: item,
-          hapticFeedbackOnStart: true,
-          feedback: _DragCard(item: item, index: index, color: color),
-          childWhenDragging: Opacity(
-            opacity: 0.35,
-            child: _PinBubble(number: index + 1, color: color),
-          ),
-          child: _PinBubble(
-            number: index + 1,
-            color: color,
-            label: '${item.price.toStringAsFixed(2)} $currency',
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onPanStart: (_) => setState(() => _dragTopLeft = Offset(left, top)),
+        onPanUpdate: (d) {
+          if (_dragTopLeft == null) return;
+          setState(() {
+            _dragTopLeft = Offset(
+              (_dragTopLeft!.dx + d.delta.dx).clamp(0.0, _maxLeft),
+              (_dragTopLeft!.dy + d.delta.dy).clamp(0.0, _maxTop),
+            );
+          });
+        },
+        onPanEnd: (_) {
+          final lt = _dragTopLeft;
+          if (lt == null) return;
+          final relX = (lt.dx + _pinSize / 2) / widget.canvasSize.width;
+          final relY = (lt.dy + _pinSize / 2) / widget.canvasSize.height;
+          widget.onMove(relX, relY);
+          setState(() => _dragTopLeft = null);
+        },
+        onPanCancel: () => setState(() => _dragTopLeft = null),
+        child: AnimatedScale(
+          scale: dragging ? 1.15 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          child: LongPressDraggable<BillItem>(
+            data: widget.item,
+            hapticFeedbackOnStart: true,
+            feedback:
+                _DragCard(item: widget.item, index: widget.index, color: color),
+            childWhenDragging: Opacity(
+              opacity: 0.35,
+              child: _PinBubble(number: widget.index + 1, color: color),
+            ),
+            child: _PinBubble(
+              number: widget.index + 1,
+              color: color,
+              label:
+                  '${widget.item.price.toStringAsFixed(2)} ${widget.currency}',
+            ),
           ),
         ),
       ),

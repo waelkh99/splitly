@@ -1,7 +1,7 @@
 name: splitly
 description: "Ultra-fast offline-first bill splitter for iOS."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+3
 
 environment:
   sdk: ^3.10.3
@@ -29,6 +29,13 @@ dependencies:
 
   # Utilities
   uuid: ^4.5.1
+
+  # QR generation + scanning (group import/export)
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.1.3
+
+  # Read app version at runtime
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

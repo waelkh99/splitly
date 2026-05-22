@@ -9,6 +9,9 @@ class SplitSession {
   final List<BillItem> items;
   final Adjustment adjustment;
   final String? receiptImagePath;
+  // Optional alphanumeric payment alias (CashApp tag, CliQ alias, etc.)
+  // shown on the share card so others know where to send their share.
+  final String? payTo;
   final DateTime createdAt;
 
   const SplitSession({
@@ -17,6 +20,7 @@ class SplitSession {
     required this.items,
     required this.adjustment,
     this.receiptImagePath,
+    this.payTo,
     required this.createdAt,
   });
 
@@ -35,6 +39,7 @@ class SplitSession {
     List<BillItem>? items,
     Adjustment? adjustment,
     Object? receiptImagePath = _sentinel,
+    Object? payTo = _sentinel,
   }) =>
       SplitSession(
         id: id,
@@ -44,6 +49,7 @@ class SplitSession {
         receiptImagePath: receiptImagePath == _sentinel
             ? this.receiptImagePath
             : receiptImagePath as String?,
+        payTo: payTo == _sentinel ? this.payTo : payTo as String?,
         createdAt: createdAt,
       );
 
@@ -53,6 +59,7 @@ class SplitSession {
         'items': items.map((i) => i.toMap()).toList(),
         'adjustment': adjustment.toMap(),
         'receiptImagePath': receiptImagePath,
+        'payTo': payTo,
         'createdAt': createdAt.millisecondsSinceEpoch,
       };
 
@@ -66,6 +73,7 @@ class SplitSession {
             .toList(),
         adjustment: Adjustment.fromMap(map['adjustment'] as Map),
         receiptImagePath: map['receiptImagePath'] as String?,
+        payTo: map['payTo'] as String?,
         createdAt:
             DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
       );

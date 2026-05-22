@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Splitly';
+  String get appName => 'Splitli';
 
   @override
   String get splitBillsInSeconds => 'Split bills in seconds';
@@ -219,8 +219,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subtotal => 'Subtotal';
 
   @override
+  String get payTo => 'Pay to';
+
+  @override
+  String get payToHint => 'CashApp / CliQ / Venmo handle';
+
+  @override
   String splitSummary(String total, String lines) {
-    return '🍽️ Splitly Bill Summary\nTotal: $total\n\n$lines\nSplit with Splitly ✨';
+    return '🍽️ Splitli Bill Summary\nTotal: $total\n\n$lines\nSplit with Splitli ✨';
   }
 
   @override
@@ -250,6 +256,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestions => 'Suggestions';
 
   @override
+  String get shareViaQr => 'Share via QR';
+
+  @override
+  String get scanGroupQr => 'Scan group QR';
+
+  @override
+  String get scanWithSplitli => 'Scan with Splitli on another phone';
+
+  @override
+  String get importFromQr => 'Import from QR';
+
+  @override
+  String get importGroup => 'Import group';
+
+  @override
+  String get groupImported => 'Group imported';
+
+  @override
+  String get notASplitliQr => 'Not a Splitli group QR';
+
+  @override
+  String get updateSplitliToImport => 'Update Splitli to import this group';
+
+  @override
+  String get groupQrMalformed => 'Couldn\'t read this group QR';
+
+  @override
+  String get groupQrTooLarge => 'This group is too large to share via QR';
+
+  @override
+  String nameAlreadyExists(String name) {
+    return 'A group named \"$name\" already exists';
+  }
+
+  @override
+  String get replace => 'Replace';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
   String membersCount(int count) {
     return '$count members';
   }
@@ -274,6 +321,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get version => 'Version';
+
+  @override
+  String get help => 'Help';
+
+  @override
+  String get howItWorks => 'How it works';
+
+  @override
+  String get getStarted => 'Get started';
+
+  @override
+  String get onboardCard1Title => 'Welcome to Splitli';
+
+  @override
+  String get onboardCard1Body =>
+      'Split bills with friends in under a minute. No account, no signup.';
+
+  @override
+  String get onboardCard2Title => 'Who\'s in?';
+
+  @override
+  String get onboardCard2Body =>
+      'Add people one by one or pick from saved groups — tap chips to select.';
+
+  @override
+  String get onboardCard3Title => 'Mark items on the receipt';
+
+  @override
+  String get onboardCard3Body =>
+      'Snap a photo or skip it, tap to mark each item, then drag onto a person.';
+
+  @override
+  String get onboardCard4Title => 'Adjust & share';
+
+  @override
+  String get onboardCard4Body =>
+      'Add tax, tip, or discount, then share a clean summary via WhatsApp or anywhere.';
 
   @override
   String get deleteConfirm => 'Delete?';

@@ -13,6 +13,7 @@ import 'features/summary/summary_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/history/history_detail_screen.dart';
 import 'features/groups/groups_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'data/models/history_entry.dart';
 
@@ -24,7 +25,7 @@ class SplitlyApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return MaterialApp(
-      title: 'Splitly',
+      title: 'Splitli',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       locale: settings.locale,
@@ -55,6 +56,8 @@ class SplitlyApp extends ConsumerWidget {
             return _route(const GroupsScreen());
           case AppRoutes.settings:
             return _route(const SettingsScreen());
+          case AppRoutes.onboarding:
+            return _route(const OnboardingScreen());
           default:
             return _route(const HomeScreen());
         }

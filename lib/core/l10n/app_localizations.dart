@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Splitly'**
+  /// **'Splitli'**
   String get appName;
 
   /// No description provided for @splitBillsInSeconds.
@@ -512,10 +512,22 @@ abstract class AppLocalizations {
   /// **'Subtotal'**
   String get subtotal;
 
+  /// No description provided for @payTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay to'**
+  String get payTo;
+
+  /// No description provided for @payToHint.
+  ///
+  /// In en, this message translates to:
+  /// **'CashApp / CliQ / Venmo handle'**
+  String get payToHint;
+
   /// No description provided for @splitSummary.
   ///
   /// In en, this message translates to:
-  /// **'🍽️ Splitly Bill Summary\nTotal: {total}\n\n{lines}\nSplit with Splitly ✨'**
+  /// **'🍽️ Splitli Bill Summary\nTotal: {total}\n\n{lines}\nSplit with Splitli ✨'**
   String splitSummary(String total, String lines);
 
   /// No description provided for @shareableLinePerson.
@@ -566,6 +578,84 @@ abstract class AppLocalizations {
   /// **'Suggestions'**
   String get suggestions;
 
+  /// No description provided for @shareViaQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Share via QR'**
+  String get shareViaQr;
+
+  /// No description provided for @scanGroupQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan group QR'**
+  String get scanGroupQr;
+
+  /// No description provided for @scanWithSplitli.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with Splitli on another phone'**
+  String get scanWithSplitli;
+
+  /// No description provided for @importFromQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from QR'**
+  String get importFromQr;
+
+  /// No description provided for @importGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Import group'**
+  String get importGroup;
+
+  /// No description provided for @groupImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Group imported'**
+  String get groupImported;
+
+  /// No description provided for @notASplitliQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a Splitli group QR'**
+  String get notASplitliQr;
+
+  /// No description provided for @updateSplitliToImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Splitli to import this group'**
+  String get updateSplitliToImport;
+
+  /// No description provided for @groupQrMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read this group QR'**
+  String get groupQrMalformed;
+
+  /// No description provided for @groupQrTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This group is too large to share via QR'**
+  String get groupQrTooLarge;
+
+  /// No description provided for @nameAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A group named \"{name}\" already exists'**
+  String nameAlreadyExists(String name);
+
+  /// No description provided for @replace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get replace;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
   /// No description provided for @membersCount.
   ///
   /// In en, this message translates to:
@@ -613,6 +703,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version'**
   String get version;
+
+  /// No description provided for @help.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get help;
+
+  /// No description provided for @howItWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get howItWorks;
+
+  /// No description provided for @getStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get getStarted;
+
+  /// No description provided for @onboardCard1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Splitli'**
+  String get onboardCard1Title;
+
+  /// No description provided for @onboardCard1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Split bills with friends in under a minute. No account, no signup.'**
+  String get onboardCard1Body;
+
+  /// No description provided for @onboardCard2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s in?'**
+  String get onboardCard2Title;
+
+  /// No description provided for @onboardCard2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Add people one by one or pick from saved groups — tap chips to select.'**
+  String get onboardCard2Body;
+
+  /// No description provided for @onboardCard3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark items on the receipt'**
+  String get onboardCard3Title;
+
+  /// No description provided for @onboardCard3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap a photo or skip it, tap to mark each item, then drag onto a person.'**
+  String get onboardCard3Body;
+
+  /// No description provided for @onboardCard4Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust & share'**
+  String get onboardCard4Title;
+
+  /// No description provided for @onboardCard4Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tax, tip, or discount, then share a clean summary via WhatsApp or anywhere.'**
+  String get onboardCard4Body;
 
   /// No description provided for @deleteConfirm.
   ///

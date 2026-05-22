@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 import '../../core/l10n/app_localizations.dart';
@@ -27,11 +28,19 @@ class SummaryScreen extends ConsumerStatefulWidget {
 class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   bool _saved = false;
   final _shareCardKey = GlobalKey();
+  final _payToCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _payToCtrl.text = ref.read(splitSessionProvider).payTo ?? '';
     WidgetsBinding.instance.addPostFrameCallback((_) => _saveToHistory());
+  }
+
+  @override
+  void dispose() {
+    _payToCtrl.dispose();
+    super.dispose();
   }
 
   void _saveToHistory() {
@@ -77,8 +86,12 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     final lines = session.people
         .map((p) => '${p.name}: ${formatAmount(result.amountFor(p), currency)}')
         .join('\n');
+    final body = l.splitSummary(formatAmount(result.total, currency), lines);
+    final payTo = session.payTo;
     await Share.share(
-      l.splitSummary(formatAmount(result.total, currency), lines),
+      payTo != null && payTo.isNotEmpty
+          ? '$body\n${l.payTo}: $payTo'
+          : body,
       sharePositionOrigin: origin,
     );
   }
@@ -99,6 +112,14 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
+                _PayToField(
+                  controller: _payToCtrl,
+                  label: l.payTo,
+                  hint: l.payToHint,
+                  onChanged: (v) =>
+                      ref.read(splitSessionProvider.notifier).setPayTo(v),
+                ),
+                const SizedBox(height: 12),
                 RepaintBoundary(
                   key: _shareCardKey,
                   child: _ShareCard(
@@ -411,8 +432,52 @@ class _ShareCard extends StatelessWidget {
             );
           }),
 
+          // ── Pay-to badge (when set)
+          if (session.payTo != null && session.payTo!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet_rounded,
+                        size: 14, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${l.payTo}:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        session.payTo!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           // ── Footer
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 11),
             color: const Color(0xFFF8F9FA),
@@ -569,4 +634,57 @@ class _BottomActions extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ─── Pay-to field ──────────────────────────────────────────────────────────
+
+class _PayToField extends StatelessWidget {
+  const _PayToField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+        LengthLimitingTextInputFormatter(40),
+      ],
+      textCapitalization: TextCapitalization.none,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: const Icon(Icons.account_balance_wallet_rounded, size: 18),
+        isDense: true,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
 }

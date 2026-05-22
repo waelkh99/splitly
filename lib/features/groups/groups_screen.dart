@@ -4,8 +4,12 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/providers/groups_provider.dart';
 import '../../core/providers/people_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/group_share_codec.dart';
 import '../../data/models/group.dart';
 import '../../data/models/person.dart';
+import 'group_import_preview_sheet.dart';
+import 'group_qr_scanner_screen.dart';
+import 'group_qr_screen.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
@@ -16,7 +20,16 @@ class GroupsScreen extends ConsumerWidget {
     final groups = ref.watch(groupsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.groups)),
+      appBar: AppBar(
+        title: Text(l.groups),
+        actions: [
+          IconButton(
+            onPressed: () => _openScanner(context),
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: l.scanGroupQr,
+          ),
+        ],
+      ),
       body: groups.isEmpty
           ? _EmptyState(l: l)
           : ListView.separated(
@@ -29,6 +42,26 @@ class GroupsScreen extends ConsumerWidget {
         onPressed: () => _openSheet(context, null),
         child: const Icon(Icons.add_rounded),
       ),
+    );
+  }
+
+  static Future<void> _openScanner(BuildContext context) async {
+    final payload = await Navigator.push<GroupPayload?>(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const GroupQrScannerScreen(),
+      ),
+    );
+    if (payload == null || !context.mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => GroupImportPreviewSheet(payload: payload),
     );
   }
 
@@ -243,6 +276,21 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
     Navigator.pop(context);
   }
 
+  void _showQr(BuildContext context) {
+    // Reflect any in-flight edits in the QR rather than just the saved state.
+    final live = widget.existing!.copyWith(
+      name: _nameCtrl.text.trim(),
+      members: List.from(_members),
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => GroupQrScreen(group: live),
+      ),
+    );
+  }
+
   void _delete(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
@@ -321,13 +369,20 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
                         fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),
-                if (_isEdit)
+                if (_isEdit) ...[
+                  IconButton(
+                    onPressed: () => _showQr(context),
+                    icon: const Icon(Icons.qr_code_rounded),
+                    color: AppColors.primary,
+                    tooltip: l.shareViaQr,
+                  ),
                   IconButton(
                     onPressed: () => _delete(context),
                     icon: const Icon(Icons.delete_outline_rounded),
                     color: AppColors.error,
                     tooltip: l.delete,
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 16),

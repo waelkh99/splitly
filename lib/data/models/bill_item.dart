@@ -4,7 +4,8 @@ class BillItem {
   final String id;
   final String name;
   final double price;
-  final List<String> assignedPersonIds;
+  // personId → quantity ordered. Equal split when all quantities are 1.
+  final Map<String, int> personQuantities;
   // Relative position on the receipt canvas (0.0–1.0). Null = manually added.
   final double? imageX;
   final double? imageY;
@@ -13,7 +14,7 @@ class BillItem {
     required this.id,
     required this.name,
     required this.price,
-    this.assignedPersonIds = const [],
+    this.personQuantities = const {},
     this.imageX,
     this.imageY,
   });
@@ -32,16 +33,25 @@ class BillItem {
         imageY: imageY,
       );
 
-  bool get isAssigned => assignedPersonIds.isNotEmpty;
+  List<String> get assignedPersonIds => personQuantities.keys.toList();
+  bool get isAssigned => personQuantities.isNotEmpty;
   bool get isPinned => imageX != null && imageY != null;
 
-  double get pricePerPerson =>
-      assignedPersonIds.isEmpty ? 0 : price / assignedPersonIds.length;
+  int get totalQuantity =>
+      personQuantities.values.fold(0, (sum, q) => sum + q);
+
+  double amountFor(String personId) {
+    final qty = personQuantities[personId];
+    if (qty == null || qty == 0) return 0;
+    final total = totalQuantity;
+    if (total == 0) return 0;
+    return price * qty / total;
+  }
 
   BillItem copyWith({
     String? name,
     double? price,
-    List<String>? assignedPersonIds,
+    Map<String, int>? personQuantities,
     Object? imageX = _sentinel,
     Object? imageY = _sentinel,
   }) =>
@@ -49,7 +59,7 @@ class BillItem {
         id: id,
         name: name ?? this.name,
         price: price ?? this.price,
-        assignedPersonIds: assignedPersonIds ?? this.assignedPersonIds,
+        personQuantities: personQuantities ?? this.personQuantities,
         imageX: imageX == _sentinel ? this.imageX : imageX as double?,
         imageY: imageY == _sentinel ? this.imageY : imageY as double?,
       );
@@ -58,19 +68,34 @@ class BillItem {
         'id': id,
         'name': name,
         'price': price,
+        'personQuantities': personQuantities.map((k, v) => MapEntry(k, v)),
+        // legacy field kept for forward-compat reads
         'assignedPersonIds': assignedPersonIds,
         'imageX': imageX,
         'imageY': imageY,
       };
 
-  factory BillItem.fromMap(Map<dynamic, dynamic> map) => BillItem(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        price: (map['price'] as num).toDouble(),
-        assignedPersonIds: (map['assignedPersonIds'] as List).cast<String>(),
-        imageX: (map['imageX'] as num?)?.toDouble(),
-        imageY: (map['imageY'] as num?)?.toDouble(),
-      );
+  factory BillItem.fromMap(Map<dynamic, dynamic> map) {
+    // Migrate legacy data: if personQuantities absent, build from assignedPersonIds
+    Map<String, int> quantities;
+    if (map['personQuantities'] != null) {
+      quantities = (map['personQuantities'] as Map)
+          .map((k, v) => MapEntry(k as String, (v as num).toInt()));
+    } else {
+      quantities = {
+        for (final id in (map['assignedPersonIds'] as List).cast<String>())
+          id: 1,
+      };
+    }
+    return BillItem(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      price: (map['price'] as num).toDouble(),
+      personQuantities: quantities,
+      imageX: (map['imageX'] as num?)?.toDouble(),
+      imageY: (map['imageY'] as num?)?.toDouble(),
+    );
+  }
 }
 
 const _sentinel = Object();

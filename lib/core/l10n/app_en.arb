@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
 
-  "appName": "Splitly",
+  "appName": "Splitli",
   "splitBillsInSeconds": "Split bills in seconds",
   "newSplit": "New Split",
   "history": "History",
@@ -78,7 +78,9 @@
   "billSummary": "Bill Summary",
   "total": "Total",
   "subtotal": "Subtotal",
-  "splitSummary": "🍽️ Splitly Bill Summary\nTotal: {total}\n\n{lines}\nSplit with Splitly ✨",
+  "payTo": "Pay to",
+  "payToHint": "CashApp / CliQ / Venmo handle",
+  "splitSummary": "🍽️ Splitli Bill Summary\nTotal: {total}\n\n{lines}\nSplit with Splitli ✨",
   "@splitSummary": {
     "placeholders": {
       "total": { "type": "String" },
@@ -100,6 +102,22 @@
   "loadGroup": "Load group",
   "addAtLeastTwoMembers": "Add at least 2 members",
   "suggestions": "Suggestions",
+  "shareViaQr": "Share via QR",
+  "scanGroupQr": "Scan group QR",
+  "scanWithSplitli": "Scan with Splitli on another phone",
+  "importFromQr": "Import from QR",
+  "importGroup": "Import group",
+  "groupImported": "Group imported",
+  "notASplitliQr": "Not a Splitli group QR",
+  "updateSplitliToImport": "Update Splitli to import this group",
+  "groupQrMalformed": "Couldn't read this group QR",
+  "groupQrTooLarge": "This group is too large to share via QR",
+  "nameAlreadyExists": "A group named \"{name}\" already exists",
+  "@nameAlreadyExists": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "replace": "Replace",
+  "rename": "Rename",
   "membersCount": "{count} members",
   "@membersCount": {
     "placeholders": { "count": { "type": "int" } }
@@ -112,6 +130,17 @@
   "currencyHint": "e.g. JD",
   "about": "About",
   "version": "Version",
+  "help": "Help",
+  "howItWorks": "How it works",
+  "getStarted": "Get started",
+  "onboardCard1Title": "Welcome to Splitli",
+  "onboardCard1Body": "Split bills with friends in under a minute. No account, no signup.",
+  "onboardCard2Title": "Who's in?",
+  "onboardCard2Body": "Add people one by one or pick from saved groups — tap chips to select.",
+  "onboardCard3Title": "Mark items on the receipt",
+  "onboardCard3Body": "Snap a photo or skip it, tap to mark each item, then drag onto a person.",
+  "onboardCard4Title": "Adjust & share",
+  "onboardCard4Body": "Add tax, tip, or discount, then share a clean summary via WhatsApp or anywhere.",
 
   "deleteConfirm": "Delete?",
   "deleteGroupConfirm": "Delete this group?",

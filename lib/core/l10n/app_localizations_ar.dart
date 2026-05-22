@@ -219,6 +219,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subtotal => 'المجموع الفرعي';
 
   @override
+  String get payTo => 'ادفع إلى';
+
+  @override
+  String get payToHint => 'كاش آب / كليك / فينمو';
+
+  @override
   String splitSummary(String total, String lines) {
     return '🍽️ ملخص فاتورة سبلتلي\nالإجمالي: $total\n\n$lines\nتم التقسيم عبر سبلتلي ✨';
   }
@@ -250,6 +256,47 @@ class AppLocalizationsAr extends AppLocalizations {
   String get suggestions => 'اقتراحات';
 
   @override
+  String get shareViaQr => 'مشاركة برمز QR';
+
+  @override
+  String get scanGroupQr => 'امسح رمز المجموعة';
+
+  @override
+  String get scanWithSplitli => 'امسح من سبلتلي على هاتف آخر';
+
+  @override
+  String get importFromQr => 'استيراد من QR';
+
+  @override
+  String get importGroup => 'استيراد المجموعة';
+
+  @override
+  String get groupImported => 'تم استيراد المجموعة';
+
+  @override
+  String get notASplitliQr => 'هذا ليس رمز مجموعة سبلتلي';
+
+  @override
+  String get updateSplitliToImport => 'حدّث سبلتلي لاستيراد هذه المجموعة';
+
+  @override
+  String get groupQrMalformed => 'تعذّر قراءة هذا الرمز';
+
+  @override
+  String get groupQrTooLarge => 'هذه المجموعة كبيرة جدًا لمشاركتها برمز QR';
+
+  @override
+  String nameAlreadyExists(String name) {
+    return 'توجد مجموعة باسم \"$name\" بالفعل';
+  }
+
+  @override
+  String get replace => 'استبدال';
+
+  @override
+  String get rename => 'إعادة تسمية';
+
+  @override
   String membersCount(int count) {
     return '$count أعضاء';
   }
@@ -274,6 +321,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get version => 'الإصدار';
+
+  @override
+  String get help => 'المساعدة';
+
+  @override
+  String get howItWorks => 'كيف يعمل التطبيق';
+
+  @override
+  String get getStarted => 'ابدأ الآن';
+
+  @override
+  String get onboardCard1Title => 'مرحبًا بك في سبلتلي';
+
+  @override
+  String get onboardCard1Body =>
+      'قسّم الفواتير مع أصدقائك في أقل من دقيقة. بدون حساب، بدون تسجيل.';
+
+  @override
+  String get onboardCard2Title => 'من المشاركون؟';
+
+  @override
+  String get onboardCard2Body =>
+      'أضف الأشخاص واحدًا تلو الآخر أو اختر من مجموعاتك المحفوظة.';
+
+  @override
+  String get onboardCard3Title => 'حدّد الأصناف على الفاتورة';
+
+  @override
+  String get onboardCard3Body =>
+      'التقط صورة أو تخطّاها، اضغط لتحديد كل صنف، ثم اسحبه إلى الشخص المناسب.';
+
+  @override
+  String get onboardCard4Title => 'عدّل وشارك';
+
+  @override
+  String get onboardCard4Body =>
+      'أضف الضريبة أو الإكرامية أو الخصم، ثم شارك ملخصًا أنيقًا عبر واتساب أو أي تطبيق.';
 
   @override
   String get deleteConfirm => 'حذف؟';

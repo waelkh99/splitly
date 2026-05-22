@@ -18,10 +18,10 @@ class SessionNotifier extends StateNotifier<SplitSession> {
 
   void removePerson(String personId) {
     final updatedPeople = state.people.where((p) => p.id != personId).toList();
-    // Unassign the person from items
     final updatedItems = state.items.map((item) {
-      final ids = item.assignedPersonIds.where((id) => id != personId).toList();
-      return item.copyWith(assignedPersonIds: ids);
+      final quantities = Map<String, int>.from(item.personQuantities)
+        ..remove(personId);
+      return item.copyWith(personQuantities: quantities);
     }).toList();
     state = state.copyWith(people: updatedPeople, items: updatedItems);
   }
@@ -47,28 +47,45 @@ class SessionNotifier extends StateNotifier<SplitSession> {
     );
   }
 
-  void assignItem(String itemId, List<String> personIds) {
+  void assignItem(String itemId, Map<String, int> personQuantities) {
     updateItem(
-      state.items.firstWhere((i) => i.id == itemId).copyWith(
-            assignedPersonIds: personIds,
-          ),
+      state.items
+          .firstWhere((i) => i.id == itemId)
+          .copyWith(personQuantities: personQuantities),
     );
   }
 
   void togglePersonOnItem(String itemId, String personId) {
     final item = state.items.firstWhere((i) => i.id == itemId);
-    final ids = List<String>.from(item.assignedPersonIds);
-    if (ids.contains(personId)) {
-      ids.remove(personId);
+    final quantities = Map<String, int>.from(item.personQuantities);
+    if (quantities.containsKey(personId)) {
+      quantities.remove(personId);
     } else {
-      ids.add(personId);
+      quantities[personId] = 1;
     }
-    updateItem(item.copyWith(assignedPersonIds: ids));
+    updateItem(item.copyWith(personQuantities: quantities));
+  }
+
+  void setPersonQuantity(String itemId, String personId, int quantity) {
+    final item = state.items.firstWhere((i) => i.id == itemId);
+    final quantities = Map<String, int>.from(item.personQuantities);
+    if (quantity <= 0) {
+      quantities.remove(personId);
+    } else {
+      quantities[personId] = quantity;
+    }
+    updateItem(item.copyWith(personQuantities: quantities));
   }
 
   // Receipt image
   void setReceiptImage(String? path) {
     state = state.copyWith(receiptImagePath: path);
+  }
+
+  // Payment alias (CashApp, CliQ, etc.) shown on the share card.
+  void setPayTo(String? value) {
+    final trimmed = value?.trim();
+    state = state.copyWith(payTo: (trimmed?.isEmpty ?? true) ? null : trimmed);
   }
 
   // Adjustments

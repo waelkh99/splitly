@@ -7,4 +7,5 @@ class AppRoutes {
   static const historyDetail = '/history/detail';
   static const groups = '/groups';
   static const settings = '/settings';
+  static const onboarding = '/onboarding';
 }
